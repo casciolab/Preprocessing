@@ -28,7 +28,7 @@ ident_mat = "/Users/Failla/fsl/etc/flirtsch/ident.mat"
 spm_first_dirs = glob2.glob(subjfolder + '/*.feat')
 # get list to compare to - only subjects that have valid runs (to exclude certain subjects)
 # this can also be used to run only new subjects, just change this list otherwise you'll run ALL your old subjects
-subjects_to_process = [line.rstrip('\r\n') for line in open('/Volumes/psr/Failla/PIEC/DesktopBackup/Scripts/spm_rerun_9-18-2018')]
+subjects_to_process = [line.rstrip('\r\n') for line in open('/Volumes/psr/Failla/PIEC/DesktopBackup/Scripts/spm_rerun_10-4-2018')]
 
 # define subjects and their runs that warrant processing (to exclude certain runs)
 # this code creates a dictionary that we can look up what each run number is for each subject
@@ -50,17 +50,20 @@ second_level = "/Users/Failla/Desktop/PIEC/300HPF/SPM_Reg/SecondLevel/"
 for path in spm_first_dirs:
     stats = path + "/stats/logfile"
     if os.path.exists(stats):
-        # get subject number from path
-        subj_run = path.split("/")[8]
-        subj = subj_run.split("_")[0]
-        run = subj_run.split("_")[1].split(".")[0]
-
         # delete all matrix files from reg subfolder in each first level feat
         # this will make sure only the identity matrix will be used for our "fake" registration
         mat_files_to_delete = glob2.glob((path + "/reg/*.mat"))
         for mat_file in mat_files_to_delete:
             os.remove(mat_file)
             print mat_file
+            print "Deleted"
+
+        # delete all warp files from reg subfolder in each first level feat
+        # this will make sure second level runs flirt and not featreapply for registration
+        warp_files_to_delete = glob2.glob((path + "/reg/*_warp.nii.gz"))
+        for warp_file in warp_files_to_delete:
+            os.remove(warp_file)
+            print warp_file
             print "Deleted"
 
         # copy identity matrix into first level for "registration"
@@ -72,7 +75,12 @@ for path in spm_first_dirs:
         standard = path +"/reg/standard.nii.gz"
         shutil.copy(mean_func,standard)
 
-# run second levels
+        # delete registration from first levels
+        if os.path.exists((path + "/reg_standard/")):
+                shutil.rmtree((path + "/reg_standard/"))
+                print ("Deleted " + path + "/reg_standard/")
+
+    # run second levels
 for subj in subjects_to_process:
     print subj
     # date to add to template file later
@@ -114,7 +122,6 @@ for subj in subjects_to_process:
                 newTemplate.write("set fmri(outputdir) " + '"' + output + '"' + "\n")
                 newTemplate.write("set feat_files(1) " + '"' + funcfile1 + '"' + "\n")
                 newTemplate.write("set feat_files(2) " + '"' + funcfile1 + '"' + "\n")
-
             os.system("feat " + newTemplateFile)
 
         if runlistlength == 2 :
@@ -122,8 +129,6 @@ for subj in subjects_to_process:
             templateContent = open(template).read()
             funcfile1 = subjfolder + subj + "_" + runlist[0] + ".feat"
             funcfile2 = subjfolder + subj + "_" + runlist[1] + ".feat"
-
-
             # Copy template and append new data to it
             newTemplateFile = "/Users/Failla/Desktop/PIEC/300HPF/Axial/Templates/2ndLevel/" + subj + "_" + date + ".fsf"
             with open(newTemplateFile, "a") as newTemplate:
@@ -131,7 +136,6 @@ for subj in subjects_to_process:
                 newTemplate.write("set fmri(outputdir) " + '"' + output + '"' + "\n")
                 newTemplate.write("set feat_files(1) " + '"' + funcfile1 + '"' + "\n")
                 newTemplate.write("set feat_files(2) " + '"' + funcfile2 + '"' + "\n")
-
             os.system("feat " + newTemplateFile)
 
         if runlistlength == 3 :
@@ -140,7 +144,6 @@ for subj in subjects_to_process:
             funcfile1 = subjfolder + subj + "_" + runlist[0] + ".feat"
             funcfile2 = subjfolder + subj + "_" + runlist[1] + ".feat"
             funcfile3 = subjfolder + subj + "_" + runlist[2] + ".feat"
-
             # Copy template and append new data to it
             newTemplateFile = "/Users/Failla/Desktop/PIEC/300HPF/Axial/Templates/2ndLevel/" + subj + "_" + date + ".fsf"
             with open(newTemplateFile, "a") as newTemplate:
@@ -149,7 +152,6 @@ for subj in subjects_to_process:
                 newTemplate.write("set feat_files(1) " + '"' + funcfile1 + '"' + "\n")
                 newTemplate.write("set feat_files(2) " + '"' + funcfile2 + '"' + "\n")
                 newTemplate.write("set feat_files(3) " + '"' + funcfile3 + '"' + "\n")
-
             os.system("feat " + newTemplateFile)
 
         if runlistlength == 4 :
@@ -159,7 +161,6 @@ for subj in subjects_to_process:
             funcfile2 = subjfolder + subj + "_" + runlist[1] + ".feat"
             funcfile3 = subjfolder + subj + "_" + runlist[2] + ".feat"
             funcfile4 = subjfolder + subj + "_" + runlist[3] + ".feat"
-
             # Copy template and append new data to it
             newTemplateFile = "/Users/Failla/Desktop/PIEC/300HPF/Axial/Templates/2ndLevel/" + subj + "_" + date + ".fsf"
             with open(newTemplateFile, "a") as newTemplate:
@@ -169,13 +170,11 @@ for subj in subjects_to_process:
                 newTemplate.write("set feat_files(2) " + '"' + funcfile2 + '"' + "\n")
                 newTemplate.write("set feat_files(3) " + '"' + funcfile3 + '"' + "\n")
                 newTemplate.write("set feat_files(4) " + '"' + funcfile4 + '"' + "\n")
-
             os.system("feat " + newTemplateFile)
+
         else:
             print "Subject %s" %subj + " may not have all valid runs. Not processed."
 
     else:
         print "Subject %s" %subj + " already has second level. Not processed."
-
-
 
